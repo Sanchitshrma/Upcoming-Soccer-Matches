@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upcoming Soccer Matches</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        color: white;
+      }
+
+      .header h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+
+      .api-info {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .loading {
+        text-align: center;
+        color: white;
+        font-size: 1.5rem;
+        margin-top: 50px;
+      }
+
+      .loading::after {
+        content: "";
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        margin-left: 10px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error {
+        background: rgba(255, 0, 0, 0.1);
+        color: #ff6b6b;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        border: 1px solid rgba(255, 107, 107, 0.3);
+      }
+
+      .matches-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 25px;
+        margin-top: 30px;
+      }
+
+      .match-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .match-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #00d4aa, #00a8cc);
+      }
+
+      .match-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .match-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .league-name {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .match-status {
+        background: #e8f5e8;
+        color: #2d5a2d;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .teams-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 25px 0;
+      }
+
+      .team {
+        text-align: center;
+        flex: 1;
+      }
+
+      .team-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+      }
+
+      .vs {
+        color: #7f8c8d;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0 20px;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      .match-info {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .match-date,
+      .match-time,
+      .match-venue {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        color: #495057;
+      }
+
+      .match-date:last-child,
+      .match-time:last-child,
+      .match-venue:last-child {
+        margin-bottom: 0;
+      }
+
+      .match-date strong,
+      .match-time strong,
+      .match-venue strong {
+        color: #2c3e50;
+        margin-right: 8px;
+        min-width: 80px;
+      }
+
+      .no-matches {
+        text-align: center;
+        color: white;
+        font-size: 1.3rem;
+        margin-top: 50px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 40px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      @media (max-width: 768px) {
+        .matches-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .teams-container {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        .vs {
+          transform: rotate(90deg);
+          margin: 10px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>⚽ Upcoming Soccer Matches</h1>
+        <p>Live fixture data from top leagues around the world</p>
+      </div>
+
+      <div class="api-info">
+        <h3>🔗 API Information & CORS Solution</h3>
+        <p><strong>Primary API:</strong> football-data.org API</p>
+        <p>
+          <strong>Issue:</strong> CORS error when calling from browser directly
+        </p>
+        <p><strong>Solutions:</strong></p>
+        <ul style="margin: 10px 0; padding-left: 20px">
+          <li>
+            <strong>Backend Proxy:</strong> Create a server-side endpoint to
+            proxy API calls
+          </li>
+          <li>
+            <strong>CORS Proxy:</strong> Use services like
+            cors-anywhere.herokuapp.com
+          </li>
+          <li>
+            <strong>Alternative APIs:</strong> Use CORS-friendly APIs like
+            RapidAPI
+          </li>
+          <li>
+            <strong>Browser Extension:</strong> Use CORS-disabling extensions
+            for development
+          </li>
+        </ul>
+        <p>
+          <strong>Current Status:</strong> Using enhanced mock data with
+          realistic match information
+        </p>
+      </div>
+
+      <div id="loading" class="loading">Loading upcoming matches...</div>
+
+      <div
+        id="matches-container"
+        class="matches-grid"
+        style="display: none"
+      ></div>
+
+      <div id="error-container" style="display: none"></div>
+    </div>
+
+    <script>
+      // Mock data simulating API response
+      const mockMatches = [
+        {
+          id: 1,
+          homeTeam: { name: "Manchester United", shortName: "MUN" },
+          awayTeam: { name: "Liverpool", shortName: "LIV" },
+          utcDate: "2025-06-02T14:00:00Z",
+          competition: { name: "Premier League" },
+          status: "SCHEDULED",
+        },
+        {
+          id: 2,
+          homeTeam: { name: "Real Madrid", shortName: "RMA" },
+          awayTeam: { name: "Barcelona", shortName: "BAR" },
+          utcDate: "2025-06-03T19:00:00Z",
+          competition: { name: "La Liga" },
+          status: "SCHEDULED",
+        },
+        {
+          id: 3,
+          homeTeam: { name: "Bayern Munich", shortName: "BAY" },
+          awayTeam: { name: "Borussia Dortmund", shortName: "BVB" },
+          utcDate: "2025-06-04T17:30:00Z",
+          competition: { name: "Bundesliga" },
+          status: "SCHEDULED",
+        },
+        {
+          id: 4,
+          homeTeam: { name: "PSG", shortName: "PSG" },
+          awayTeam: { name: "Marseille", shortName: "MAR" },
+          utcDate: "2025-06-05T20:00:00Z",
+          competition: { name: "Ligue 1" },
+          status: "SCHEDULED",
+        },
+        {
+          id: 5,
+          homeTeam: { name: "Juventus", shortName: "JUV" },
+          awayTeam: { name: "AC Milan", shortName: "MIL" },
+          utcDate: "2025-06-06T18:45:00Z",
+          competition: { name: "Serie A" },
+          status: "SCHEDULED",
+        },
+        {
+          id: 6,
+          homeTeam: { name: "Chelsea", shortName: "CHE" },
+          awayTeam: { name: "Arsenal", shortName: "ARS" },
+          utcDate: "2025-06-07T16:30:00Z",
+          competition: { name: "Premier League" },
+          status: "SCHEDULED",
+        },
+      ];
+
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      }
+
+      function formatTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZoneName: "short",
+        });
+      }
+
+      function createMatchCard(match) {
+        return `
+                <div class="match-card">
+                    <div class="match-header">
+                        <div class="league-name">${match.competition.name}</div>
+                        <div class="match-status">${match.status}</div>
+                    </div>
+                    
+                    <div class="teams-container">
+                        <div class="team">
+                            <div class="team-name">${match.homeTeam.name}</div>
+                        </div>
+                        <div class="vs">VS</div>
+                        <div class="team">
+                            <div class="team-name">${match.awayTeam.name}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="match-info">
+                        <div class="match-date">
+                            <strong>📅 Date:</strong>
+                            <span>${formatDate(match.utcDate)}</span>
+                        </div>
+                        <div class="match-time">
+                            <strong>🕐 Time:</strong>
+                            <span>${formatTime(match.utcDate)}</span>
+                        </div>
+                        ${
+                          match.venue
+                            ? `
+                        <div class="match-venue">
+                            <strong>🏟️ Venue:</strong>
+                            <span>${match.venue}</span>
+                        </div>
+                        `
+                            : ""
+                        }
+                    </div>
+                </div>
+            `;
+      }
+
+      async function fetchMatches() {
+        try {
+          const response = await fetch("http://localhost:3000/api/matches");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data.matches || [];
+        } catch (error) {
+          console.error("Failed to fetch matches:", error);
+          // Optionally fallback to mock data here:
+          return getEnhancedMockData();
+        }
+      }
+      function getEnhancedMockData() {
+        // Enhanced mock data with more realistic upcoming matches
+        const today = new Date();
+        const enhancedMatches = [
+          {
+            id: 1,
+            homeTeam: { name: "Manchester City", shortName: "MCI" },
+            awayTeam: { name: "Arsenal", shortName: "ARS" },
+            utcDate: new Date(
+              today.getTime() + 2 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "Premier League" },
+            status: "SCHEDULED",
+            venue: "Etihad Stadium",
+          },
+          {
+            id: 2,
+            homeTeam: { name: "Real Madrid", shortName: "RMA" },
+            awayTeam: { name: "Atletico Madrid", shortName: "ATM" },
+            utcDate: new Date(
+              today.getTime() + 3 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "La Liga" },
+            status: "SCHEDULED",
+            venue: "Santiago Bernabéu",
+          },
+          {
+            id: 3,
+            homeTeam: { name: "Bayern Munich", shortName: "BAY" },
+            awayTeam: { name: "Borussia Dortmund", shortName: "BVB" },
+            utcDate: new Date(
+              today.getTime() + 4 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "Bundesliga" },
+            status: "SCHEDULED",
+            venue: "Allianz Arena",
+          },
+          {
+            id: 4,
+            homeTeam: { name: "PSG", shortName: "PSG" },
+            awayTeam: { name: "Lyon", shortName: "LYO" },
+            utcDate: new Date(
+              today.getTime() + 5 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "Ligue 1" },
+            status: "SCHEDULED",
+            venue: "Parc des Princes",
+          },
+          {
+            id: 5,
+            homeTeam: { name: "Inter Milan", shortName: "INT" },
+            awayTeam: { name: "Juventus", shortName: "JUV" },
+            utcDate: new Date(
+              today.getTime() + 6 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "Serie A" },
+            status: "SCHEDULED",
+            venue: "San Siro",
+          },
+          {
+            id: 6,
+            homeTeam: { name: "Liverpool", shortName: "LIV" },
+            awayTeam: { name: "Chelsea", shortName: "CHE" },
+            utcDate: new Date(
+              today.getTime() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            competition: { name: "Premier League" },
+            status: "SCHEDULED",
+            venue: "Anfield",
+          },
+        ];
+
+        return enhancedMatches;
+      }
+
+      async function loadMatches() {
+        const loadingEl = document.getElementById("loading");
+        const containerEl = document.getElementById("matches-container");
+        const errorEl = document.getElementById("error-container");
+
+        try {
+          const matches = await fetchMatches();
+
+          loadingEl.style.display = "none";
+
+          if (matches && matches.length > 0) {
+            containerEl.innerHTML = matches.map(createMatchCard).join("");
+            containerEl.style.display = "grid";
+          } else {
+            containerEl.innerHTML =
+              '<div class="no-matches">No upcoming matches found</div>';
+            containerEl.style.display = "block";
+          }
+        } catch (error) {
+          loadingEl.style.display = "none";
+          errorEl.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Loading Matches</h3>
+                        <p>${error.message}</p>
+                        <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 10px; cursor: pointer;">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+          errorEl.style.display = "block";
+        }
+      }
+
+      // Load matches when page loads
+      document.addEventListener("DOMContentLoaded", loadMatches);
+    </script>
+  </body>
+</html>
